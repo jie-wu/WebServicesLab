@@ -23,8 +23,10 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.List;
 
 import wujiep.uw.tacoma.edu.webserviceslab.course.Course;
+import wujiep.uw.tacoma.edu.webserviceslab.data.CourseDB;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -57,6 +59,8 @@ public class EditCourseFragment extends Fragment {
     private CourseActivity mActivity;
 
     private OnFragmentInteractionListener mListener;
+    private CourseDB mCourseDB;
+    private List<Course> mCourseList;
 
     public EditCourseFragment() {
         // Required empty public constructor
@@ -100,6 +104,10 @@ public class EditCourseFragment extends Fragment {
         mCourseLongDescEditView = (EditText) view.findViewById(R.id.edit_course_long_desc);
         mCoursePrereqsEditView = (EditText) view.findViewById(R.id.edit_course_prereqs);
 
+        mCourseIdTextView.setText(getArguments().getString(Course.ID));
+        mCourseShortDescEditView.setText(getArguments().getString(Course.SHORT_DESC));
+        mCourseLongDescEditView.setText(getArguments().getString(Course.LONG_DESC));
+        mCoursePrereqsEditView.setText(getArguments().getString(Course.PRE_REQS));
 
 
 
@@ -107,6 +115,13 @@ public class EditCourseFragment extends Fragment {
         makeChangesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (mCourseDB == null) {
+                    mCourseDB = new CourseDB(getActivity());
+                }
+                boolean result = mCourseDB.updateCourse(mCourseIdTextView.getText().toString(), mCourseShortDescEditView.getText().toString(),
+                        mCourseLongDescEditView.getText().toString(), mCoursePrereqsEditView.getText().toString());
+                Toast.makeText(v.getContext(), "Local database update: " + result , Toast.LENGTH_LONG)
+                        .show();
                 String url = buildEditCourseURL(v);
 //                mListener.addCourse(url);
 
@@ -198,14 +213,13 @@ public class EditCourseFragment extends Fragment {
 //    @Override
 //    public void onAttach(Context context) {
 //        super.onAttach(context);
-//        if (context instanceof OnFragmentInteractionListener) {
-//            mListener = (OnFragmentInteractionListener) context;
+//        if (context instanceof CourseAddFragment.CourseAddListener) {
+//            mListener = (CourseAddFragment.CourseAddListener) context;
 //        } else {
 //            throw new RuntimeException(context.toString()
-//                    + " must implement OnFragmentInteractionListener");
+//                    + " must implement CourseAddListener");
 //        }
 //    }
-
 
     @Override
     public void onAttach(Context context) {

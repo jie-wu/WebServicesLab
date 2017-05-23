@@ -1,9 +1,15 @@
 package wujiep.uw.tacoma.edu.webserviceslab;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
@@ -17,7 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 import wujiep.uw.tacoma.edu.webserviceslab.course.Course;
-
+import wujiep.uw.tacoma.edu.webserviceslab.authenticate.SignInActivity;
 public class CourseActivity extends AppCompatActivity
         implements CourseFragment.OnListFragmentInteractionListener,
         CourseAddFragment.CourseAddListener {
@@ -47,6 +53,15 @@ public class CourseActivity extends AppCompatActivity
                     .add(R.id.fragment_container, courseFragment)
                     .commit();
         }
+    }
+
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_course_list, menu);
+        return true;
     }
 
 
@@ -80,6 +95,24 @@ public class CourseActivity extends AppCompatActivity
 
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        boolean result = false;
+        switch (item.getItemId()) {
+            case R.id.action_logout:
+                SharedPreferences sharedPreferences =
+                        getSharedPreferences(getString(R.string.LOGIN_PREFS), Context.MODE_PRIVATE);
+                sharedPreferences.edit().putBoolean(getString(R.string.LOGGEDIN), false)
+                        .commit();
+
+                Intent i = new Intent(this, SignInActivity.class);
+                startActivity(i);
+                finish();
+                result = true;
+        }
+        return result;
+    }
 
     private class AddCourseTask extends AsyncTask<String, Void, String> {
 
@@ -147,4 +180,7 @@ public class CourseActivity extends AppCompatActivity
             }
         }
     }
+
+
+
 }

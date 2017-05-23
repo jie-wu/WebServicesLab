@@ -2,6 +2,11 @@
 <resources>
     <item name="fragment_container" type="id" />
     <item name="fab" type="id" />
+    <item name="login_button" type="id"/>
+    <item name="pwd_edit" type="id"/>
+    <item name="userid_edit" type="id"/>
+    <item name="editText_userid" type="id"/>
+    <item name="sign_in_activity" type="id"/>
     <dimen name="text_margin">16dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
 </resources>

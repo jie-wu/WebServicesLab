@@ -1,6 +1,8 @@
 package wujiep.uw.tacoma.edu.webserviceslab;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -22,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import wujiep.uw.tacoma.edu.webserviceslab.course.Course;
+import wujiep.uw.tacoma.edu.webserviceslab.data.CourseDB;
 
 /**
  * A fragment representing a list of Items.
@@ -40,6 +43,9 @@ public class CourseFragment extends Fragment {
     private int mColumnCount = 1;
     private OnListFragmentInteractionListener mListener;
     private RecyclerView mRecyclerView;
+
+    private CourseDB mCourseDB;
+    private List<Course> mCourseList;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -76,9 +82,8 @@ public class CourseFragment extends Fragment {
         if (view instanceof RecyclerView) {
             Context context = view.getContext();
             RecyclerView recyclerView = (RecyclerView) view;
-            ////////////////////////////////////////////////////////////////////////////////////////////////
+
             mRecyclerView = (RecyclerView) view;
-            ////////////////////////////////////////////////////////////////////////////////////////////////
             if (mColumnCount <= 1) {
                 recyclerView.setLayoutManager(new LinearLayoutManager(context));
             } else {
@@ -94,6 +99,49 @@ public class CourseFragment extends Fragment {
         FloatingActionButton floatingActionButton = (FloatingActionButton)
                 getActivity().findViewById(R.id.fab);
         floatingActionButton.show();
+        ConnectivityManager connMgr = (ConnectivityManager)
+                getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        if (networkInfo != null && networkInfo.isConnected()) {
+            DownloadCoursesTask task = new DownloadCoursesTask();
+            task.execute(new String[]{COURSE_URL});
+        }
+        else {
+            Toast.makeText(view.getContext(),
+                    "No network connection available. Cannot display courses",
+                    Toast.LENGTH_SHORT) .show();
+            if (mCourseDB == null) {
+                mCourseDB = new CourseDB(getActivity());
+            }
+            if (mCourseList == null) {
+                mCourseList = mCourseDB.getCourses();
+            }
+            mRecyclerView.setAdapter(new MyCourseRecyclerViewAdapter(mCourseList, mListener));
+        }
+        //Read from file and show the text
+
+        try {
+            InputStream inputStream = getActivity().openFileInput(
+                    getString(R.string.LOGIN_FILE));
+
+            if ( inputStream != null ) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String receiveString = "";
+                StringBuilder stringBuilder = new StringBuilder();
+
+                while ((receiveString = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(receiveString);
+                }
+
+                inputStream.close();
+                Toast.makeText(getActivity(), stringBuilder.toString(), Toast.LENGTH_SHORT)
+                        .show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return view;
     }
 
@@ -132,35 +180,33 @@ public class CourseFragment extends Fragment {
 
 
     private class DownloadCoursesTask extends AsyncTask<String, Void, String> {
+        //private OnEditFragmentInteractionListener mListener;
+        private CourseDB mCourseDB;
+        private List<Course> mCourseList;
 
         @Override
         protected String doInBackground(String... urls) {
             String response = "";
             HttpURLConnection urlConnection = null;
-            for (String url : urls) {
-                try {
+            for(String url : urls){
+                try{
                     URL urlObject = new URL(url);
-                    urlConnection = (HttpURLConnection) urlObject.openConnection();
+                    urlConnection = (HttpURLConnection)urlObject.openConnection();
 
-                    InputStream content = urlConnection.getInputStream();
+                    InputStream content =  urlConnection.getInputStream();
 
                     BufferedReader buffer = new BufferedReader(new InputStreamReader(content));
                     String s = "";
-                    while ((s = buffer.readLine()) != null) {
-                        response += s;
+                    while((s = buffer.readLine()) != null){
+                        response +=s;
                     }
-
-                } catch (Exception e) {
-                    response = "Unable to download the list of courses, Reason: "
-                            + e.getMessage();
-                }
-                finally {
-                    if (urlConnection != null)
+                }catch(Exception e){
+                    response = "Unable to download the list of courses, Reason: " + e.getMessage();
+                }finally {
+                    if(urlConnection != null)
                         urlConnection.disconnect();
                 }
             }
-
-
             return response;
         }
 
@@ -173,8 +219,8 @@ public class CourseFragment extends Fragment {
                 return;
             }
 
-            List<Course> courseList = new ArrayList<Course>();
-            result = Course.parseCourseJSON(result, courseList);
+            mCourseList = new ArrayList<Course>();
+            result = Course.parseCourseJSON(result, mCourseList);
             // Something wrong with the JSON returned.
             if (result != null) {
                 Toast.makeText(getActivity().getApplicationContext(), result, Toast.LENGTH_LONG)
@@ -183,10 +229,33 @@ public class CourseFragment extends Fragment {
             }
 
             // Everything is good, show the list of courses.
-            if (!courseList.isEmpty()) {
-                mRecyclerView.setAdapter(new MyCourseRecyclerViewAdapter(courseList, mListener));
+            if (!mCourseList.isEmpty()) {
+
+                if (mCourseDB == null) {
+                    mCourseDB = new CourseDB(getActivity());
+                }
+
+                // Delete old data so that you can refresh the local
+                // database with the network data.
+                mCourseDB.deleteCourses();
+
+
+                // Also, add to the local database
+                for (int i=0; i<mCourseList.size(); i++) {
+                    Course course = mCourseList.get(i);
+
+                    mCourseDB.insertCourse(course.getCourseId(),
+                            course.getShortDescription(),
+                            course.getLongDescription(),
+                            course.getPreReqs());
+                }
+
+
+                Course mFirstCourse = mCourseList.get(0);
+                mRecyclerView.setAdapter(new MyCourseRecyclerViewAdapter(mCourseList, mListener));
             }
         }
 
     }
+
 }
